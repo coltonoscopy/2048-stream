@@ -45,6 +45,16 @@ table.insert(tiles, tile)
 grid[1][2].occupied = true
 grid[1][2].tile = tile
 
+local tile = {tileX = 1, tileY = 2, x = grid[2][1].x, y = grid[2][1].y, num = 2}
+table.insert(tiles, tile)
+grid[2][1].occupied = true
+grid[2][1].tile = tile
+
+local tile = {tileX = 2, tileY = 2, x = grid[2][2].x, y = grid[2][2].y, num = 2}
+table.insert(tiles, tile)
+grid[2][2].occupied = true
+grid[2][2].tile = tile
+
 function love.load()
     love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT)
     love.window.setTitle('2048')
@@ -97,29 +107,86 @@ function getLeftmostOpenX(startX, startY, finish)
     return finish
 end
 
+function getTopmostOpenY(startY, startX, finish)
+    for y = startY - 1, finish, -1 do
+        if grid[y][startX].occupied then
+            return y + 1
+        end
+    end
+
+    return finish
+end
+
+function getBottommostOpenY(startY, startX, finish)
+    for y = startY + 1, finish do
+        if grid[y][startX].occupied then
+            return y - 1
+        end
+    end
+
+    return finish
+end
+
 function moveUp()
-    canMove = false
-    for k, tile in pairs(tiles) do
-        tile.tileY = 1
-        
-        Timer.tween(0.1, {
-            [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
-        }):finish(function()
-            canMove = true
-        end)
+    -- iterate row by row over the grid, left to right
+    for x = 1, 4 do
+        for y = 1, 4 do
+            local tile = grid[y][x].tile
+
+            -- only move tile if it exists
+            if tile then
+                local topmostY = getTopmostOpenY(y, x, 1)
+
+                if farthestY ~= y then
+                    canMove = false
+                    local oldY = tile.tileY
+                    
+                    tile.tileY = topmostY
+                    grid[tile.tileY][x].tile = tile
+                    grid[tile.tileY][x].occupied = true
+                    grid[oldY][x].tile = nil
+                    grid[oldY][x].occupied = false
+
+                    Timer.tween(0.1, {
+                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                    }):finish(function()
+                        canMove = true
+                    end)
+                end
+            end
+        end
     end
 end
 
 function moveDown()
-    canMove = false
-    for k, tile in pairs(tiles) do
-        tile.tileY = 4
-        
-        Timer.tween(0.1, {
-            [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
-        }):finish(function()
-            canMove = true
-        end)
+    -- iterate row by row over the grid, left to right
+    for x = 1, 4 do
+        for y = 4, 1, -1 do
+            local tile = grid[y][x].tile
+
+            -- only move tile if it exists
+            if tile then
+                local bottommostY = getBottommostOpenY(y, x, 4)
+
+                if bottommostY ~= y then
+                    canMove = false
+                    local oldY = y
+                    
+                    tile.tileY = bottommostY
+
+                    grid[tile.tileY][x].tile = tile
+                    grid[tile.tileY][x].occupied = true
+                    grid[oldY][x].tile = nil
+                    grid[oldY][x].occupied = false
+
+                    Timer.tween(0.1, {
+                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                    }):finish(function()
+                        canMove = true
+                    end)
+                end
+            end
+        end
     end
 end
 
