@@ -4,56 +4,7 @@
     Author: Colton Ogden
 ]]
 
-Timer = require 'lib/knife.timer'
-
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
-
-GRID_TILE_SIZE = 112
-PADDING = 30
-
-GRID_BACKGROUND_WIDTH = WINDOW_WIDTH / 2 - 40
-GRID_BACKGROUND_HEIGHT = WINDOW_HEIGHT - (WINDOW_HEIGHT / 4) + 60
-
-grid = {}
-
--- background grid
-for y = 1, 4 do
-    
-    table.insert(grid, {})
-    
-    for x = 1, 4 do
-        table.insert(grid[y], {
-            x = PADDING + WINDOW_WIDTH / 4 + (x - 1) * GRID_TILE_SIZE + (x - 1) * PADDING,
-            y = PADDING + WINDOW_HEIGHT / 8 + (y - 1) * GRID_TILE_SIZE + (y - 1) * PADDING,
-            occupied = false, tile = nil
-        })
-    end
-end
-
--- moving tiles
-tiles = {}
-
--- add mock tiles
-local tile = {tileX = 1, tileY = 1, x = grid[1][1].x, y = grid[1][1].y, num = 2}
-table.insert(tiles, tile)
-grid[1][1].occupied = true
-grid[1][1].tile = tile
-
-local tile = {tileX = 2, tileY = 1, x = grid[1][2].x, y = grid[1][2].y, num = 2}
-table.insert(tiles, tile)
-grid[1][2].occupied = true
-grid[1][2].tile = tile
-
-local tile = {tileX = 1, tileY = 2, x = grid[2][1].x, y = grid[2][1].y, num = 2}
-table.insert(tiles, tile)
-grid[2][1].occupied = true
-grid[2][1].tile = tile
-
-local tile = {tileX = 2, tileY = 2, x = grid[2][2].x, y = grid[2][2].y, num = 2}
-table.insert(tiles, tile)
-grid[2][2].occupied = true
-grid[2][2].tile = tile
+require 'src/dependencies'
 
 function love.load()
     love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -61,6 +12,9 @@ function love.load()
     font = love.graphics.newFont(64)
     love.graphics.setFont(font)
 
+    grid = Grid()
+
+    -- enable or disable movement depending on tile movement
     canMove = true
 end
 
@@ -73,12 +27,16 @@ function love.keypressed(key)
     if canMove then
         if key == 'up' then
             moveUp()
+            grid:spawnTile()
         elseif key == 'down' then
             moveDown()
+            grid:spawnTile()
         elseif key == 'right' then
             moveRight()
+            grid:spawnTile()
         elseif key == 'left' then
             moveLeft()
+            grid:spawnTile()
         end
     end
 end
@@ -87,71 +45,67 @@ function love.update(dt)
     Timer.update(dt)
 end
 
-function getFarthestOpenX(startX, startY, finish)
-    for x = startX + 1, finish do
-        if grid[startY][x].occupied then
-            return x - 1
-        end
-    end
-
-    return finish
-end
-
-function getLeftmostOpenX(startX, startY, finish)
-    for x = startX - 1, finish, -1 do
-        if grid[startY][x].occupied then
-            return x + 1
-        end
-    end
-
-    return finish
-end
-
-function getTopmostOpenY(startY, startX, finish)
-    for y = startY - 1, finish, -1 do
-        if grid[y][startX].occupied then
-            return y + 1
-        end
-    end
-
-    return finish
-end
-
-function getBottommostOpenY(startY, startX, finish)
-    for y = startY + 1, finish do
-        if grid[y][startX].occupied then
-            return y - 1
-        end
-    end
-
-    return finish
-end
-
 function moveUp()
-    -- iterate row by row over the grid, left to right
+    -- iterate row by row over the grid, right to left
     for x = 1, 4 do
-        for y = 1, 4 do
-            local tile = grid[y][x].tile
+
+        -- start 1 from the right because edge tile can't move
+        for y = 2, 4 do
+            local tile = grid:getTile(x, y)
 
             -- only move tile if it exists
             if tile then
-                local topmostY = getTopmostOpenY(y, x, 1)
 
+                -- grab farthest open tile we can move to
+                local farthestY = grid:getTopmostOpenY(x, y, 1)
+
+                -- if the tile we're moving to is not the same
                 if farthestY ~= y then
+
+                    -- combine like numbers
+                    -- only allow if we are not at right edge
+                    if farthestY > 1 then
+                        local farthestTile = grid:getTile(x, farthestY - 1)
+                        if farthestTile.num == tile.num then
+                            canMove = false
+                            local oldY = tile.tileY
+            
+                            tile.tileY = farthestY - 1
+                            grid:clearTile(x, oldY)
+
+                            Timer.tween(0.1, {
+                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
+                                          y = grid.grid[tile.tileY][tile.tileX].y}
+                            }):finish(function()
+                                canMove = true
+                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
+                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
+                                tile.remove = true
+                                grid:removeDeletedTiles()
+                            end)
+
+                            -- skip non-combination movement below
+                            goto continue
+                        end
+                    end
+
+                    -- just move over as normal if not combining terms
                     canMove = false
                     local oldY = tile.tileY
+
+                    print(x, oldY)
                     
-                    tile.tileY = topmostY
-                    grid[tile.tileY][x].tile = tile
-                    grid[tile.tileY][x].occupied = true
-                    grid[oldY][x].tile = nil
-                    grid[oldY][x].occupied = false
+                    tile.tileY = farthestY
+                    grid:setTile(x, tile.tileY, tile)
+                    grid:clearTile(x, oldY)
 
                     Timer.tween(0.1, {
-                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
                     }):finish(function()
                         canMove = true
                     end)
+
+                    ::continue::
                 end
             end
         end
@@ -159,31 +113,66 @@ function moveUp()
 end
 
 function moveDown()
-    -- iterate row by row over the grid, left to right
+    -- iterate row by row over the grid, right to left
     for x = 1, 4 do
-        for y = 4, 1, -1 do
-            local tile = grid[y][x].tile
+
+        -- start 1 from the right because edge tile can't move
+        for y = 3, 1, -1 do
+            local tile = grid:getTile(x, y)
 
             -- only move tile if it exists
             if tile then
-                local bottommostY = getBottommostOpenY(y, x, 4)
 
-                if bottommostY ~= y then
+                -- grab farthest open tile we can move to
+                local farthestY = grid:getBottommostOpenY(x, y, 4)
+
+                -- if the tile we're moving to is not the same
+                if farthestY ~= y then
+
+                    -- combine like numbers
+                    -- only allow if we are not at right edge
+                    if farthestY < 4 then
+                        local farthestTile = grid:getTile(x, farthestY + 1)
+                        if farthestTile.num == tile.num then
+                            canMove = false
+                            local oldY = tile.tileY
+            
+                            tile.tileY = farthestY + 1
+                            grid:clearTile(x, oldY)
+
+                            Timer.tween(0.1, {
+                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
+                                          y = grid.grid[tile.tileY][tile.tileX].y}
+                            }):finish(function()
+                                canMove = true
+                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
+                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
+                                tile.remove = true
+                                grid:removeDeletedTiles()
+                            end)
+
+                            -- skip non-combination movement below
+                            goto continue
+                        end
+                    end
+
+                    -- just move over as normal if not combining terms
                     canMove = false
-                    local oldY = y
-                    
-                    tile.tileY = bottommostY
+                    local oldY = tile.tileY
 
-                    grid[tile.tileY][x].tile = tile
-                    grid[tile.tileY][x].occupied = true
-                    grid[oldY][x].tile = nil
-                    grid[oldY][x].occupied = false
+                    print(x, oldY)
+                    
+                    tile.tileY = farthestY
+                    grid:setTile(x, tile.tileY, tile)
+                    grid:clearTile(x, oldY)
 
                     Timer.tween(0.1, {
-                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
                     }):finish(function()
                         canMove = true
                     end)
+
+                    ::continue::
                 end
             end
         end
@@ -191,30 +180,66 @@ function moveDown()
 end
 
 function moveLeft()
-    -- iterate row by row over the grid, left to right
+    -- iterate row by row over the grid, right to left
     for y = 1, 4 do
-        for x = 1, 4 do
-            local tile = grid[y][x].tile
+
+        -- start 1 from the right because edge tile can't move
+        for x = 2, 4 do
+            local tile = grid:getTile(x, y)
 
             -- only move tile if it exists
             if tile then
-                local farthestX = getLeftmostOpenX(x, y, 1)
 
+                -- grab farthest open tile we can move to
+                local farthestX = grid:getLeftmostOpenX(x, y, 1)
+
+                -- if the tile we're moving to is not the same
                 if farthestX ~= x then
+
+                    -- combine like numbers
+                    -- only allow if we are not at right edge
+                    if farthestX > 1 then
+                        local farthestTile = grid:getTile(farthestX - 1, y)
+                        if farthestTile.num == tile.num then
+                            canMove = false
+                            local oldX = tile.tileX
+            
+                            tile.tileX = farthestX - 1
+                            grid:clearTile(oldX, y)
+
+                            Timer.tween(0.1, {
+                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
+                                            y = grid.grid[tile.tileY][tile.tileX].y}
+                            }):finish(function()
+                                canMove = true
+                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
+                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
+                                tile.remove = true
+                                grid:removeDeletedTiles()
+                            end)
+
+                            -- skip non-combination movement below
+                            goto continue
+                        end
+                    end
+
+                    -- just move over as normal if not combining terms
                     canMove = false
                     local oldX = tile.tileX
+
+                    print(oldX, y)
                     
                     tile.tileX = farthestX
-                    grid[y][tile.tileX].tile = tile
-                    grid[y][tile.tileX].occupied = true
-                    grid[y][oldX].tile = nil
-                    grid[y][oldX].occupied = false
+                    grid:setTile(tile.tileX, y, tile)
+                    grid:clearTile(oldX, y)
 
                     Timer.tween(0.1, {
-                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
                     }):finish(function()
                         canMove = true
                     end)
+
+                    ::continue::
                 end
             end
         end
@@ -224,30 +249,64 @@ end
 function moveRight()
     -- iterate row by row over the grid, right to left
     for y = 1, 4 do
+
+        -- start 1 from the right because edge tile can't move
         for x = 3, 1, -1 do
-            local tile = grid[y][x].tile
-            print(tile)
+            local tile = grid:getTile(x, y)
 
             -- only move tile if it exists
             if tile then
-                local farthestX = getFarthestOpenX(x, y, 4)
-                print(x, y, farthestX)
 
+                -- grab farthest open tile we can move to
+                local farthestX = grid:getRightmostOpenX(x, y, 4)
+
+                -- if the tile we're moving to is not the same
                 if farthestX ~= x then
+
+                    -- combine like numbers
+                    -- only allow if we are not at right edge
+                    if farthestX < 4 then
+                        local farthestTile = grid:getTile(farthestX + 1, y)
+                        if farthestTile.num == tile.num then
+                            canMove = false
+                            local oldX = tile.tileX
+            
+                            tile.tileX = farthestX + 1
+                            grid:clearTile(oldX, y)
+
+                            Timer.tween(0.1, {
+                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
+                                            y = grid.grid[tile.tileY][tile.tileX].y}
+                            }):finish(function()
+                                canMove = true
+                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
+                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
+                                tile.remove = true
+                                grid:removeDeletedTiles()
+                            end)
+
+                            -- skip non-combination movement below
+                            goto continue
+                        end
+                    end
+
+                    -- just move over as normal if not combining terms
                     canMove = false
                     local oldX = tile.tileX
+
+                    print(oldX, y)
                     
                     tile.tileX = farthestX
-                    grid[y][tile.tileX].tile = tile
-                    grid[y][tile.tileX].occupied = true
-                    grid[y][oldX].tile = nil
-                    grid[y][oldX].occupied = false
+                    grid:setTile(tile.tileX, y, tile)
+                    grid:clearTile(oldX, y)
 
                     Timer.tween(0.1, {
-                        [tile] = {x = grid[tile.tileY][tile.tileX].x, y = grid[tile.tileY][tile.tileX].y}
+                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
                     }):finish(function()
                         canMove = true
                     end)
+
+                    ::continue::
                 end
             end
         end
@@ -256,29 +315,6 @@ end
 
 function love.draw()
     love.graphics.clear(250/255, 250/255, 238/255, 1)
-    
-    love.graphics.setColor(186/255, 173/255, 160/255, 1)
-    love.graphics.rectangle('fill', 
-        WINDOW_WIDTH / 4, 
-        WINDOW_HEIGHT / 8, 
-        GRID_BACKGROUND_WIDTH, GRID_BACKGROUND_HEIGHT, 10, 10, 3)
 
-    -- draw grid
-    for y = 1, 4 do
-        for x = 1, 4 do
-            love.graphics.setColor(205/255, 192/255, 181/255, 1)
-            love.graphics.rectangle('fill', grid[y][x].x, grid[y][x].y, 
-                GRID_TILE_SIZE, GRID_TILE_SIZE, 5, 5, 3)
-        end
-    end
-
-    -- draw tiles
-    for k, tile in pairs(tiles) do
-        love.graphics.setColor(238/255, 228/255, 218/255, 1)
-        love.graphics.rectangle('fill', tile.x, tile.y, GRID_TILE_SIZE, GRID_TILE_SIZE, 10, 10, 3)
-
-        love.graphics.setColor(119/255, 110/255, 101/255, 1)
-        love.graphics.printf(tile.num, tile.x, 
-            tile.y + GRID_TILE_SIZE / 2 - font:getHeight() / 2, GRID_TILE_SIZE, 'center')
-    end
+    grid:render()
 end
