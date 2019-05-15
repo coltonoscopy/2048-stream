@@ -20,6 +20,7 @@ function love.load()
 
     gameOver = false
     win = false
+    score = 0
 end
 
 function love.keypressed(key)
@@ -32,6 +33,7 @@ function love.keypressed(key)
         if key == 'up' then
             moveUp()
             grid:spawnTile()
+            score = score + 1
             
             if grid:calculateLoss() then
                 gameOver = true
@@ -42,6 +44,7 @@ function love.keypressed(key)
         elseif key == 'down' then
             moveDown()
             grid:spawnTile()
+            score = score + 1
 
             if grid:calculateLoss() then
                 gameOver = true
@@ -52,6 +55,7 @@ function love.keypressed(key)
         elseif key == 'right' then
             moveRight()
             grid:spawnTile()
+            score = score + 1
 
             if grid:calculateLoss() then
                 gameOver = true
@@ -62,6 +66,7 @@ function love.keypressed(key)
         elseif key == 'left' then
             moveLeft()
             grid:spawnTile()
+            score = score + 1
 
             if grid:calculateLoss() then
                 gameOver = true
@@ -259,6 +264,8 @@ function love.draw()
     love.graphics.clear(250/255, 250/255, 238/255, 1)
 
     grid:render()
+
+    love.graphics.printf('Score: ' .. tostring(score), 0, 0, WINDOW_WIDTH, 'right')
 
     if gameOver then
         local text = 'Game Over!'

@@ -10,7 +10,7 @@ function Grid:init()
 
     self:initializeGrid()
 
-    for i = 1, 16 do
+    for i = 1, 4 do
         self:spawnTile()
     end
 end
