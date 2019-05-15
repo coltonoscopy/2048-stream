@@ -10,7 +10,7 @@ function Grid:init()
 
     self:initializeGrid()
 
-    for i = 1, 5 do
+    for i = 1, 16 do
         self:spawnTile()
     end
 end
@@ -56,6 +56,89 @@ function Grid:initializeGrid()
             })
         end
     end
+end
+
+function Grid:calculateWin()
+    for y = 1, 4 do
+        for x = 1, 4 do
+            if self.grid[y][x].tile and self.grid[y][x].tile.num == 2048 then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+function Grid:calculateLoss()
+    for y = 1, 4 do
+        for x = 1, 4 do
+            local tile = self.grid[y][x].tile
+
+            if not tile then
+                return false 
+            end
+
+            -- check top
+            if y > 1 then
+                local tileTop = self.grid[y-1][x].tile
+
+                -- if no tile above, we can move
+                if not tileTop then
+                    return false
+                
+                -- if tile identical in num, we can merge
+                elseif tileTop.num == tile.num then
+                    return false
+                end
+            end
+
+            -- check bottom
+            if y < 4 then
+                local tileBottom = self.grid[y+1][x].tile
+
+                -- if no tile above, we can move
+                if not tileBottom then
+                    return false
+                
+                -- if tile identical in num, we can merge
+                elseif tileBottom.num == tile.num then
+                    return false
+                end
+            end
+
+            -- check left
+            if x > 1 then
+                local tileLeft = self.grid[y][x-1].tile
+
+                -- if no tile above, we can move
+                if not tileLeft then
+                    return false
+                
+                -- if tile identical in num, we can merge
+                elseif tileLeft.num == tile.num then
+                    return false
+                end
+            end
+
+            -- check right
+            if x < 4 then
+                local tileRight = self.grid[y][x+1].tile
+
+                -- if no tile above, we can move
+                if not tileRight then
+                    return false
+                
+                -- if tile identical in num, we can merge
+                elseif tileRight.num == tile.num then
+                    return false
+                end
+            end
+        end
+    end
+
+    print('Game Over!')
+    return true
 end
 
 function Grid:clearTile(x, y)

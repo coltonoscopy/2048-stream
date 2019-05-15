@@ -9,7 +9,7 @@ function Tile:init(tileX, tileY, x, y)
     self.tileY = tileY
     self.x = x
     self.y = y
-    self.num = 2
+    self.num = math.pow(2, math.random(10))
     self.displayNum = self.num
 end
 

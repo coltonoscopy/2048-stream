@@ -10,12 +10,16 @@ function love.load()
     love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT)
     love.window.setTitle('2048')
     font = love.graphics.newFont(32)
+    gameOverFont = love.graphics.newFont(128)
     love.graphics.setFont(font)
 
     grid = Grid()
 
     -- enable or disable movement depending on tile movement
     canMove = true
+
+    gameOver = false
+    win = false
 end
 
 function love.keypressed(key)
@@ -24,23 +28,47 @@ function love.keypressed(key)
     end
 
     -- move the tiles
-    if canMove then
+    if canMove and not gameOver then
         if key == 'up' then
             moveUp()
-            grid:print()
             grid:spawnTile()
+            
+            if grid:calculateLoss() then
+                gameOver = true
+            elseif grid:calculateWin() then
+                gameOver = true
+                win = true
+            end
         elseif key == 'down' then
             moveDown()
-            grid:print()
             grid:spawnTile()
+
+            if grid:calculateLoss() then
+                gameOver = true
+            elseif grid:calculateWin() then
+                gameOver = true
+                win = true
+            end
         elseif key == 'right' then
             moveRight()
-            grid:print()
             grid:spawnTile()
+
+            if grid:calculateLoss() then
+                gameOver = true
+            elseif grid:calculateWin() then
+                gameOver = true
+                win = true
+            end
         elseif key == 'left' then
             moveLeft()
-            grid:print()
             grid:spawnTile()
+
+            if grid:calculateLoss() then
+                gameOver = true
+            elseif grid:calculateWin() then
+                gameOver = true
+                win = true
+            end
         end
     end
 end
@@ -231,4 +259,20 @@ function love.draw()
     love.graphics.clear(250/255, 250/255, 238/255, 1)
 
     grid:render()
+
+    if gameOver then
+        local text = 'Game Over!'
+        
+        if win then
+            text = 'You Win!'
+            love.graphics.setColor(12/255, 255/255, 50/255, 1)
+        else
+            love.graphics.setColor(255/255, 50/255, 12/255, 1)
+        end
+
+        love.graphics.setFont(gameOverFont)
+        love.graphics.printf(text, 0, WINDOW_HEIGHT / 2 - 64, WINDOW_WIDTH, 'center')
+        love.graphics.setFont(font)
+        love.graphics.setColor(1, 1, 1, 1)
+    end
 end
