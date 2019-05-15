@@ -15,6 +15,26 @@ function Grid:init()
     end
 end
 
+--[[
+    Prints the grid to the console.
+]]
+function Grid:print()
+    for y = 1, 4 do
+        for x = 1, 4 do
+            io.write('[')
+            
+            if self.grid[y][x].tile then
+                io.write(tostring(self.grid[y][x].tile.num))
+            else
+                io.write(' ')
+            end
+
+            io.write(']')
+        end
+        io.write('\n')
+    end
+end
+
 function Grid:removeDeletedTiles()
     for index, tile in ipairs(self.tiles) do
         if tile.remove then

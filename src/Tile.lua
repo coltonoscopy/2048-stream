@@ -10,6 +10,7 @@ function Tile:init(tileX, tileY, x, y)
     self.x = x
     self.y = y
     self.num = 2
+    self.displayNum = self.num
 end
 
 function Tile:update(dt)
@@ -21,6 +22,6 @@ function Tile:render()
     love.graphics.rectangle('fill', self.x, self.y, GRID_TILE_SIZE, GRID_TILE_SIZE, 10, 10, 3)
 
     love.graphics.setColor(119/255, 110/255, 101/255, 1)
-    love.graphics.printf(self.num, self.x, 
+    love.graphics.printf(self.displayNum, self.x, 
         self.y + GRID_TILE_SIZE / 2 - font:getHeight() / 2, GRID_TILE_SIZE, 'center')
 end
