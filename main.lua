@@ -78,8 +78,6 @@ function moveUp()
                 else
                     makeMove(tile, x, tile.tileY, x, farthestY)
                 end
-
-                ::continue::
             end
         end
     end
@@ -113,8 +111,6 @@ function moveDown()
                 else
                     makeMove(tile, x, tile.tileY, x, farthestY)
                 end
-
-                ::continue::
             end
         end
     end
@@ -149,8 +145,6 @@ function moveLeft()
                 else
                     makeMove(tile, tile.tileX, y, farthestX, y)
                 end
-
-                ::continue::
             end
         end
     end
@@ -184,8 +178,6 @@ function moveRight()
                 else
                     makeMove(tile, tile.tileX, y, farthestX, y)
                 end
-
-                ::continue::
             end
         end
     end
