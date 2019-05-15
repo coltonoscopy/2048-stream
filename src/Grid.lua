@@ -10,8 +10,9 @@ function Grid:init()
 
     self:initializeGrid()
 
-    self:createTile(1, 3)
-    self:createTile(1, 4)
+    for i = 1, 5 do
+        self:spawnTile()
+    end
 end
 
 function Grid:removeDeletedTiles()
@@ -57,6 +58,18 @@ function Grid:getTile(x, y)
     return self.grid[y][x].tile
 end
 
+function Grid:spawnTile()
+    if #self.tiles < 16 then
+        local x, y = math.random(4), math.random(4)
+
+        while self.grid[y][x].tile do
+            x, y = math.random(4), math.random(4)
+        end
+
+        self:createTile(x, y)
+    end
+end
+
 function Grid:getRightmostOpenX(startX, startY, finish)
     for x = startX + 1, finish do
         if self.grid[startY][x].occupied then
@@ -77,10 +90,6 @@ function Grid:getLeftmostOpenX(startX, startY, finish)
     return finish
 end
 
-function Grid:spawnTile()
-
-end
-
 function Grid:getTopmostOpenY(startX, startY, finish)
     for y = startY - 1, finish, -1 do
         if self.grid[y][startX].occupied then
@@ -91,7 +100,7 @@ function Grid:getTopmostOpenY(startX, startY, finish)
     return finish
 end
 
-function Grid:getBottommostOpenY(startY, startX, finish)
+function Grid:getBottommostOpenY(startX, startY, finish)
     for y = startY + 1, finish do
         if self.grid[y][startX].occupied then
             return y - 1

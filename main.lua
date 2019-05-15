@@ -45,6 +45,27 @@ function love.update(dt)
     Timer.update(dt)
 end
 
+function mergeTween(tile)
+    Timer.tween(0.1, {
+        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
+                    y = grid.grid[tile.tileY][tile.tileX].y}
+    }):finish(function()
+        canMove = true
+        print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
+        grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
+        tile.remove = true
+        grid:removeDeletedTiles()
+    end)
+end
+
+function moveTween(tile)
+    Timer.tween(0.1, {
+        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
+    }):finish(function()
+        canMove = true
+    end)
+end
+
 function moveUp()
     -- iterate row by row over the grid, right to left
     for x = 1, 4 do
@@ -73,16 +94,7 @@ function moveUp()
                             tile.tileY = farthestY - 1
                             grid:clearTile(x, oldY)
 
-                            Timer.tween(0.1, {
-                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
-                                          y = grid.grid[tile.tileY][tile.tileX].y}
-                            }):finish(function()
-                                canMove = true
-                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
-                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
-                                tile.remove = true
-                                grid:removeDeletedTiles()
-                            end)
+                            mergeTween(tile)
 
                             -- skip non-combination movement below
                             goto continue
@@ -99,11 +111,7 @@ function moveUp()
                     grid:setTile(x, tile.tileY, tile)
                     grid:clearTile(x, oldY)
 
-                    Timer.tween(0.1, {
-                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
-                    }):finish(function()
-                        canMove = true
-                    end)
+                    moveTween(tile)
 
                     ::continue::
                 end
@@ -140,16 +148,7 @@ function moveDown()
                             tile.tileY = farthestY + 1
                             grid:clearTile(x, oldY)
 
-                            Timer.tween(0.1, {
-                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
-                                          y = grid.grid[tile.tileY][tile.tileX].y}
-                            }):finish(function()
-                                canMove = true
-                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
-                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
-                                tile.remove = true
-                                grid:removeDeletedTiles()
-                            end)
+                            mergeTween(tile)
 
                             -- skip non-combination movement below
                             goto continue
@@ -166,11 +165,7 @@ function moveDown()
                     grid:setTile(x, tile.tileY, tile)
                     grid:clearTile(x, oldY)
 
-                    Timer.tween(0.1, {
-                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
-                    }):finish(function()
-                        canMove = true
-                    end)
+                    moveTween(tile)
 
                     ::continue::
                 end
@@ -207,16 +202,7 @@ function moveLeft()
                             tile.tileX = farthestX - 1
                             grid:clearTile(oldX, y)
 
-                            Timer.tween(0.1, {
-                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
-                                            y = grid.grid[tile.tileY][tile.tileX].y}
-                            }):finish(function()
-                                canMove = true
-                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
-                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
-                                tile.remove = true
-                                grid:removeDeletedTiles()
-                            end)
+                            mergeTween(tile)
 
                             -- skip non-combination movement below
                             goto continue
@@ -233,11 +219,7 @@ function moveLeft()
                     grid:setTile(tile.tileX, y, tile)
                     grid:clearTile(oldX, y)
 
-                    Timer.tween(0.1, {
-                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
-                    }):finish(function()
-                        canMove = true
-                    end)
+                    moveTween(tile)
 
                     ::continue::
                 end
@@ -261,12 +243,16 @@ function moveRight()
                 local farthestX = grid:getRightmostOpenX(x, y, 4)
 
                 -- if the tile we're moving to is not the same
-                if farthestX ~= x then
+                if farthestX ~= x or farthestX + 1 <= 4 then
 
                     -- combine like numbers
                     -- only allow if we are not at right edge
-                    if farthestX < 4 then
+                    if tile.tileX < 4 then
+                        farthestX = math.min(3, farthestX)
                         local farthestTile = grid:getTile(farthestX + 1, y)
+
+                        if not farthestTile then goto normalMove end
+                        
                         if farthestTile.num == tile.num then
                             canMove = false
                             local oldX = tile.tileX
@@ -274,37 +260,24 @@ function moveRight()
                             tile.tileX = farthestX + 1
                             grid:clearTile(oldX, y)
 
-                            Timer.tween(0.1, {
-                                [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, 
-                                            y = grid.grid[tile.tileY][tile.tileX].y}
-                            }):finish(function()
-                                canMove = true
-                                print('X: ' .. tile.tileX, 'Y: ' .. tile.tileY)
-                                grid:getTile(tile.tileX, tile.tileY).num = tile.num * 2
-                                tile.remove = true
-                                grid:removeDeletedTiles()
-                            end)
+                            mergeTween(tile)
 
                             -- skip non-combination movement below
                             goto continue
                         end
                     end
 
+                    ::normalMove::
+
                     -- just move over as normal if not combining terms
                     canMove = false
                     local oldX = tile.tileX
-
-                    print(oldX, y)
                     
-                    tile.tileX = farthestX
+                    tile.tileX = farthestX + 1
                     grid:setTile(tile.tileX, y, tile)
                     grid:clearTile(oldX, y)
 
-                    Timer.tween(0.1, {
-                        [tile] = {x = grid.grid[tile.tileY][tile.tileX].x, y = grid.grid[tile.tileY][tile.tileX].y}
-                    }):finish(function()
-                        canMove = true
-                    end)
+                    moveTween(tile)
 
                     ::continue::
                 end
